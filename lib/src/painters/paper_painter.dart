@@ -5,7 +5,7 @@ import '../models/stroke.dart';
 import '../utils/stroke_renderer_util.dart';
 import 'template_painter.dart';
 
-class ScribePainter extends CustomPainter {
+class PaperPainter extends CustomPainter {
   /// Pre-rendered picture of all committed strokes. Built once per stroke
   /// finalization and blitted cheaply each frame.
   final ui.Picture? cachedPicture;
@@ -26,15 +26,15 @@ class ScribePainter extends CustomPainter {
   final ui.Image? footerImage;
 
   /// Ruling drawn beneath the ink.
-  final ScribePaperTemplate template;
+  final PaperTemplate template;
 
   /// Colours and metrics for that ruling.
-  final ScribeTemplateTheme templateTheme;
+  final PaperTemplateTheme templateTheme;
 
   /// Suppresses page-edge decoration when the surface is unbounded.
   final bool isInfinite;
 
-  ScribePainter({
+  PaperPainter({
     this.cachedPicture,
     this.currentStroke,
     this.highlightedStrokes,
@@ -45,8 +45,8 @@ class ScribePainter extends CustomPainter {
     this.backgroundImages,
     this.headerImage,
     this.footerImage,
-    this.template = ScribePaperTemplate.blank,
-    this.templateTheme = ScribeTemplateTheme.light,
+    this.template = PaperTemplate.blank,
+    this.templateTheme = PaperTemplateTheme.light,
     this.isInfinite = false,
   });
 
@@ -62,8 +62,8 @@ class ScribePainter extends CustomPainter {
     // ── Paper template ─────────────────────────────────────────────────────────
     // Drawn as vectors rather than a tiled bitmap so it stays crisp at any
     // zoom and matches the exported PDF exactly (both go through
-    // ScribeTemplateRenderer).
-    if (template != ScribePaperTemplate.blank &&
+    // PaperTemplateRenderer).
+    if (template != PaperTemplate.blank &&
         pageWidth != null &&
         pageHeight != null) {
       if (isInfinite) {
@@ -72,7 +72,7 @@ class ScribePainter extends CustomPainter {
         final int rows = (size.height / pageHeight!).ceil();
         for (int c = 0; c < cols; c++) {
           for (int r = 0; r < rows; r++) {
-            ScribeTemplateRenderer.paintToCanvas(
+            PaperTemplateRenderer.paintToCanvas(
               canvas: canvas,
               origin: Offset(c * pageWidth!, r * pageHeight!),
               template: template,
@@ -84,7 +84,7 @@ class ScribePainter extends CustomPainter {
       } else {
         final int pageCount = (size.height / pageHeight!).ceil();
         for (int i = 0; i < pageCount; i++) {
-          ScribeTemplateRenderer.paintToCanvas(
+          PaperTemplateRenderer.paintToCanvas(
             canvas: canvas,
             origin: Offset(0, i * pageHeight!),
             template: template,
@@ -127,7 +127,8 @@ class ScribePainter extends CustomPainter {
         for (int i = 0; i < pageCount; i++) {
           canvas.drawImageRect(
             image,
-            Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+            Rect.fromLTWH(
+                0, 0, image.width.toDouble(), image.height.toDouble()),
             Rect.fromLTWH(0, i * pageHeight!, pageWidth!, scaledHeight),
             Paint(),
           );
@@ -139,7 +140,8 @@ class ScribePainter extends CustomPainter {
           final double scaledHeight = image.height * scale;
           canvas.drawImageRect(
             image,
-            Rect.fromLTWH(0, 0, image.width.toDouble(), image.height.toDouble()),
+            Rect.fromLTWH(
+                0, 0, image.width.toDouble(), image.height.toDouble()),
             Rect.fromLTWH(0, pageIndex * pageHeight!, pageWidth!, scaledHeight),
             Paint(),
           );
@@ -172,7 +174,8 @@ class ScribePainter extends CustomPainter {
             footerImage!,
             Rect.fromLTWH(0, 0, footerImage!.width.toDouble(),
                 footerImage!.height.toDouble()),
-            Rect.fromLTWH(0, yOffset + pageHeight! - fHeight, pageWidth!, fHeight),
+            Rect.fromLTWH(
+                0, yOffset + pageHeight! - fHeight, pageWidth!, fHeight),
             Paint(),
           );
         }
@@ -228,7 +231,7 @@ class ScribePainter extends CustomPainter {
   }
 
   @override
-  bool shouldRepaint(covariant ScribePainter oldDelegate) {
+  bool shouldRepaint(covariant PaperPainter oldDelegate) {
     return !identical(oldDelegate.cachedPicture, cachedPicture) ||
         oldDelegate.currentStroke != currentStroke ||
         !identical(oldDelegate.highlightedStrokes, highlightedStrokes) ||

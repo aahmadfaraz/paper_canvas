@@ -9,22 +9,21 @@ import 'package:flutter/foundation.dart';
 import 'package:pdf/pdf.dart';
 import 'package:pdf/widgets.dart' as pw;
 import 'package:printing/printing.dart';
-import 'package:scribe_canvas/src/utils/stroke_renderer_util.dart';
-import '../controllers/scribe_canvas_controller.dart';
+import 'package:paper_canvas/src/utils/stroke_renderer_util.dart';
+import '../controllers/paper_canvas_controller.dart';
 import '../models/page_config.dart';
 import '../models/stroke.dart';
-import '../painters/scribe_painter.dart';
+import '../painters/paper_painter.dart';
 import '../painters/template_painter.dart';
 import 'page_header.dart';
 
-enum ScribeScrollMode {
+enum ScrollMode {
   continuous,
   discrete,
 }
 
-
-class ScribeCanvas extends StatefulWidget {
-  final ScribeCanvasController? controller;
+class PaperCanvas extends StatefulWidget {
+  final PaperCanvasController? controller;
   final Color color;
   final double strokeWidth;
   final bool isEraser;
@@ -47,38 +46,37 @@ class ScribeCanvas extends StatefulWidget {
   final double eraserIconSize;
   final Color eraserActiveColor;
   final Color eraserInactiveColor;
-  final ScribeScrollMode scrollMode;
+  final ScrollMode scrollMode;
   final int initialPageIndex;
 
-
-  /// Paper size and orientation. In [ScribeCanvasMode.infinite] this is used
+  /// Paper size and orientation. In [CanvasMode.infinite] this is used
   /// only as the export page size -- the drawing surface itself is unbounded.
-  final ScribePageFormat pageFormat;
+  final PageFormat pageFormat;
 
   /// Whether the surface is a stack of pages or one unbounded canvas.
-  final ScribeCanvasMode canvasMode;
+  final CanvasMode canvasMode;
 
   /// The ruling drawn under the ink.
-  final ScribePaperTemplate template;
+  final PaperTemplate template;
 
   /// Colours and metrics for that ruling.
-  final ScribeTemplateTheme templateTheme;
+  final PaperTemplateTheme templateTheme;
 
   /// The active tool. When null, falls back to [isEraser] so that callers
   /// written against the pen/eraser-only API keep working.
-  final ScribeTool? tool;
+  final PaperTool? tool;
 
-  const ScribeCanvas({
+  const PaperCanvas({
     super.key,
     this.controller,
     this.color = Colors.black,
     this.strokeWidth = 4.0,
     this.isEraser = false,
     this.tool,
-    this.pageFormat = ScribePageFormat.a4Portrait,
-    this.canvasMode = ScribeCanvasMode.paged,
-    this.template = ScribePaperTemplate.blank,
-    this.templateTheme = ScribeTemplateTheme.light,
+    this.pageFormat = PageFormat.a4Portrait,
+    this.canvasMode = CanvasMode.paged,
+    this.template = PaperTemplate.blank,
+    this.templateTheme = PaperTemplateTheme.light,
     this.isPanMode = false,
     this.onStrokeStart,
     this.onStrokeEnd,
@@ -105,16 +103,15 @@ class ScribeCanvas extends StatefulWidget {
     this.eraserIconSize = 18.0,
     this.eraserActiveColor = Colors.blueAccent,
     this.eraserInactiveColor = Colors.black54,
-    this.scrollMode = ScribeScrollMode.continuous,
+    this.scrollMode = ScrollMode.continuous,
     this.initialPageIndex = 0,
   });
 
-
   @override
-  State<ScribeCanvas> createState() => ScribeCanvasState();
+  State<PaperCanvas> createState() => PaperCanvasState();
 }
 
-class ScribeCanvasState extends State<ScribeCanvas>
+class PaperCanvasState extends State<PaperCanvas>
     with SingleTickerProviderStateMixin {
   final List<Stroke> _strokes = [];
   final List<Stroke> _redoStack = [];
@@ -142,12 +139,12 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
   /// In infinite mode there are no page bands: strokes are not clamped, the
   /// surface grows in both axes, and page-index maths is meaningless.
-  bool get _isInfinite => widget.canvasMode == ScribeCanvasMode.infinite;
+  bool get _isInfinite => widget.canvasMode == CanvasMode.infinite;
 
-  ScribeTool get _activeTool =>
-      widget.tool ?? (widget.isEraser ? ScribeTool.eraser : ScribeTool.pen);
+  PaperTool get _activeTool =>
+      widget.tool ?? (widget.isEraser ? PaperTool.eraser : PaperTool.pen);
 
-  bool get _isErasing => _activeTool == ScribeTool.eraser;
+  bool get _isErasing => _activeTool == PaperTool.eraser;
 
   int _getStrokePage(Stroke s) {
     if (s.points.isEmpty || _isInfinite) return 0;
@@ -172,7 +169,6 @@ class ScribeCanvasState extends State<ScribeCanvas>
   bool _isInitialResetDone = false;
   late int _currentPageIndex;
   static const Duration _pinchCooldown = Duration(milliseconds: 350);
-
 
   // Velocity-based variable-width tracking
   Offset? _lastVelocityPos;
@@ -220,7 +216,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
     setState(() {
       _pageCount++;
       _currentPageIndex = _pageCount - 1;
-      
+
       // Reset view to show the new last page
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) goToPage(_currentPageIndex);
@@ -354,7 +350,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
       // Navigate to the newly inserted page
       _currentPageIndex = index;
-      
+
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted) goToPage(_currentPageIndex);
       });
@@ -405,7 +401,6 @@ class ScribeCanvasState extends State<ScribeCanvas>
       // Handler
     }
   }
-
 
   /// Sets a local image as the header for all pages.
   Future<void> setHeaderImage(Uint8List bytes) async {
@@ -492,21 +487,20 @@ class ScribeCanvasState extends State<ScribeCanvas>
     _currentPageIndex = widget.initialPageIndex;
     _transformationController = TransformationController();
 
-    _alignmentController =
-        AnimationController(
-          vsync: this,
-          duration: const Duration(milliseconds: 150), // Snappier but smooth
-        )..addListener(() {
-          if (_alignmentAnimation != null) {
-            _transformationController.value = _alignmentAnimation!.value;
-          }
-        });
+    _alignmentController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 150), // Snappier but smooth
+    )..addListener(() {
+        if (_alignmentAnimation != null) {
+          _transformationController.value = _alignmentAnimation!.value;
+        }
+      });
 
     _transformationController.addListener(_enforceBounds);
   }
 
   @override
-  void didUpdateWidget(ScribeCanvas oldWidget) {
+  void didUpdateWidget(PaperCanvas oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.controller != oldWidget.controller) {
       oldWidget.controller?.detach();
@@ -525,9 +519,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
     // the document rect, and the infinite extent is memoised. All of it has to
     // be recomputed, or ink silently lands on the wrong page and the surface
     // keeps the dimensions of the format that was just replaced.
-    final bool geometryChanged =
-        oldWidget.pageFormat != widget.pageFormat ||
-            oldWidget.canvasMode != widget.canvasMode;
+    final bool geometryChanged = oldWidget.pageFormat != widget.pageFormat ||
+        oldWidget.canvasMode != widget.canvasMode;
 
     if (geometryChanged || oldWidget.multiPage != widget.multiPage) {
       if (geometryChanged) {
@@ -677,16 +670,15 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
   void _animateToMatrix(Matrix4 targetMatrix) {
     _alignmentController?.stop();
-    _alignmentAnimation =
-        Matrix4Tween(
-          begin: _transformationController.value,
-          end: targetMatrix,
-        ).animate(
-          CurvedAnimation(
-            parent: _alignmentController!,
-            curve: Curves.easeOutCubic,
-          ),
-        );
+    _alignmentAnimation = Matrix4Tween(
+      begin: _transformationController.value,
+      end: targetMatrix,
+    ).animate(
+      CurvedAnimation(
+        parent: _alignmentController!,
+        curve: Curves.easeOutCubic,
+      ),
+    );
     _alignmentController!.forward(from: 0.0);
   }
 
@@ -737,16 +729,16 @@ class ScribeCanvasState extends State<ScribeCanvas>
     });
     widget.onRedo?.call();
   }
-  
+
   void goToPage(int index) {
     if (index < 0 || index >= _pageCount) return;
-    
+
     setState(() {
       _currentPageIndex = index;
     });
 
     if (_lastConstraints == null) return;
-    
+
     final double screenWidth = _lastConstraints!.maxWidth;
     final double screenHeight = _lastConstraints!.maxHeight;
     final double scale = screenHeight < _pageHeight
@@ -762,7 +754,6 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
     _animateToMatrix(targetMatrix);
   }
-
 
   void _finalizeStroke() {
     if (_currentStroke == null || _currentStroke!.points.isEmpty) return;
@@ -865,10 +856,9 @@ class ScribeCanvasState extends State<ScribeCanvas>
           : math.min(scaleToFitWidth, scaleToFitHeight);
 
       // Center the scaled page horizontally
-      final double horizontalOffset =
-          (screenWidth - (_pageWidth * scale)) / 2;
+      final double horizontalOffset = (screenWidth - (_pageWidth * scale)) / 2;
 
-      final double verticalOffset = widget.scrollMode == ScribeScrollMode.discrete
+      final double verticalOffset = widget.scrollMode == ScrollMode.discrete
           ? -(_currentPageIndex * _pageHeight * scale)
           : 0.0;
 
@@ -900,7 +890,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
     }
 
     // 2. Vertical constraint
-    if (widget.scrollMode == ScribeScrollMode.discrete) {
+    if (widget.scrollMode == ScrollMode.discrete) {
       final double pageTopY = _currentPageIndex * _pageHeight * scale;
       final double pageBottomY = (_currentPageIndex + 1) * _pageHeight * scale;
       final double pageHeight = _pageHeight * scale;
@@ -937,14 +927,12 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
     if (currentMatrix != constrainedMatrix) {
       // Snap only if substantially different to avoid jitter from rounding
-      final double dx =
-          (currentMatrix.getTranslation().x -
-                  constrainedMatrix.getTranslation().x)
-              .abs();
-      final double dy =
-          (currentMatrix.getTranslation().y -
-                  constrainedMatrix.getTranslation().y)
-              .abs();
+      final double dx = (currentMatrix.getTranslation().x -
+              constrainedMatrix.getTranslation().x)
+          .abs();
+      final double dy = (currentMatrix.getTranslation().y -
+              constrainedMatrix.getTranslation().y)
+          .abs();
 
       if (dx > 0.5 || dy > 0.5) {
         if (_gesturePointerCount > 0) {
@@ -965,7 +953,9 @@ class ScribeCanvasState extends State<ScribeCanvas>
     Rect? bounds;
     for (final stroke in _strokes) {
       if (stroke.points.isEmpty) continue;
-      bounds = bounds == null ? stroke.bounds : bounds.expandToInclude(stroke.bounds);
+      bounds = bounds == null
+          ? stroke.bounds
+          : bounds.expandToInclude(stroke.bounds);
     }
     return bounds;
   }
@@ -1069,7 +1059,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
     if (_strokes.isEmpty) return null;
 
     final pdf = pw.Document();
-    final ScribePageFormat format = widget.pageFormat;
+    final PageFormat format = widget.pageFormat;
     final Size pageSize = format.pageSize;
 
     // Header / footer bitmaps, if the host supplied any.
@@ -1090,8 +1080,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
         _backgroundImages.length == 1 && _backgroundImages.containsKey(0);
     Uint8List? repeatingBgBytes;
     if (isRepeating) {
-      final byteData =
-          await _backgroundImages[0]!.toByteData(format: ui.ImageByteFormat.png);
+      final byteData = await _backgroundImages[0]!
+          .toByteData(format: ui.ImageByteFormat.png);
       if (byteData != null) repeatingBgBytes = byteData.buffer.asUint8List();
     }
 
@@ -1102,8 +1092,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
             child: pw.Image(pw.MemoryImage(bgBytes), fit: pw.BoxFit.fill),
           ),
         // Vector ruling, drawn from the same renderer as the on-screen canvas.
-        if (widget.template != ScribePaperTemplate.blank)
-          ScribeTemplateRenderer.pdfWidget(
+        if (widget.template != PaperTemplate.blank)
+          PaperTemplateRenderer.pdfWidget(
             template: widget.template,
             pageSize: pageSize,
             theme: widget.templateTheme,
@@ -1113,14 +1103,16 @@ class ScribeCanvasState extends State<ScribeCanvas>
             top: 0,
             left: 0,
             right: 0,
-            child: pw.Image(pw.MemoryImage(headerBytes), fit: pw.BoxFit.contain),
+            child:
+                pw.Image(pw.MemoryImage(headerBytes), fit: pw.BoxFit.contain),
           ),
         if (footerBytes != null)
           pw.Positioned(
             bottom: 0,
             left: 0,
             right: 0,
-            child: pw.Image(pw.MemoryImage(footerBytes), fit: pw.BoxFit.contain),
+            child:
+                pw.Image(pw.MemoryImage(footerBytes), fit: pw.BoxFit.contain),
           ),
       ];
     }
@@ -1231,7 +1223,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
     if (share) {
       await Printing.sharePdf(
         bytes: bytes,
-        filename: fileName ?? 'scribe_drawing.pdf',
+        filename: fileName ?? 'drawing.pdf',
       );
     }
     return bytes;
@@ -1274,8 +1266,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
   void _handleInteractionUpdate(ScaleUpdateDetails details) {
     final bool isCtrlPressed = HardwareKeyboard.instance.isControlPressed;
-    final bool isNavigating =
-        _isSpacePressed ||
+    final bool isNavigating = _isSpacePressed ||
         widget.isPanMode ||
         details.pointerCount > 1 ||
         isCtrlPressed;
@@ -1285,8 +1276,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
       final double deltaScale = details.scale / _baseScale;
       _baseScale = details.scale;
 
-      final Offset focalDelta =
-          details.localFocalPoint -
+      final Offset focalDelta = details.localFocalPoint -
           (_lastFocalPoint ?? details.localFocalPoint);
       _lastFocalPoint = details.localFocalPoint;
 
@@ -1320,7 +1310,6 @@ class ScribeCanvasState extends State<ScribeCanvas>
           ..translateByDouble(focalDelta.dx, focalDelta.dy, 0.0, 1.0);
         matrix = translation * matrix;
       }
-
 
       // Apply the constrained matrix
       _transformationController.value = _getConstrainedMatrix(matrix);
@@ -1493,7 +1482,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
         if (_isErasing) {
           bool hit = false;
           for (int i = _strokes.length - 1; i >= 0; i--) {
-            if (_strokes[i].isPointNear(event.localPosition, widget.eraserWidth / 2)) {
+            if (_strokes[i]
+                .isPointNear(event.localPosition, widget.eraserWidth / 2)) {
               final stroke = _strokes.removeAt(i);
               _highlightedStrokes.add(stroke);
               hit = true;
@@ -1599,19 +1589,18 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
         if (isCtrlPressed) {
           // Zoom in/out based on scroll direction
-          final double zoomFactor = resolvedEvent.scrollDelta.dy < 0
-              ? 1.2
-              : 0.8;
+          final double zoomFactor =
+              resolvedEvent.scrollDelta.dy < 0 ? 1.2 : 0.8;
           _manualZoom(zoomFactor, focalPoint: resolvedEvent.localPosition);
         } else {
-          if (widget.scrollMode == ScribeScrollMode.discrete) return;
+          if (widget.scrollMode == ScrollMode.discrete) return;
           // Normal vertical scroll
           final Matrix4 matrix = _transformationController.value.clone();
           final double scale = matrix.getMaxScaleOnAxis();
-          matrix.translateByDouble(0.0, -resolvedEvent.scrollDelta.dy / scale, 0.0, 1.0);
+          matrix.translateByDouble(
+              0.0, -resolvedEvent.scrollDelta.dy / scale, 0.0, 1.0);
           _animateToMatrix(_getConstrainedMatrix(matrix));
         }
-
       });
     }
   }
@@ -1700,14 +1689,15 @@ class ScribeCanvasState extends State<ScribeCanvas>
     if (content == null || content.isEmpty) return null;
 
     final Rect area = content.inflate(padding);
-    final double scale =
-        math.min(maxDimension / area.width, maxDimension / area.height)
-            .clamp(0.01, 4.0);
+    final double scale = math
+        .min(maxDimension / area.width, maxDimension / area.height)
+        .clamp(0.01, 4.0);
     final int outW = math.max(1, (area.width * scale).round());
     final int outH = math.max(1, (area.height * scale).round());
 
     final recorder = ui.PictureRecorder();
-    final canvas = Canvas(recorder, Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble()));
+    final canvas =
+        Canvas(recorder, Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble()));
     canvas.drawRect(
       Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble()),
       Paint()..color = widget.templateTheme.pageColor,
@@ -1715,8 +1705,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
     canvas.scale(scale);
     canvas.translate(-area.left, -area.top);
 
-    if (widget.template != ScribePaperTemplate.blank) {
-      ScribeTemplateRenderer.paintToCanvas(
+    if (widget.template != PaperTemplate.blank) {
+      PaperTemplateRenderer.paintToCanvas(
         canvas: canvas,
         origin: Offset.zero,
         template: widget.template,
@@ -1783,8 +1773,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
 
       if (maxY > 0) {
         // Use a much more robust 20.0 pixel margin for mobile to skip accidental slips below the boundary
-        final int requiredPages =
-            ((maxY - 20.0) / _pageHeight).floor() + 1;
+        final int requiredPages = ((maxY - 20.0) / _pageHeight).floor() + 1;
         if (requiredPages > _pageCount) {
           _pageCount = requiredPages;
           debugPrint(
@@ -1887,8 +1876,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
                 points: scaledPoints,
                 widths: stroke.widths.isNotEmpty
                     ? stroke.widths
-                          .map((w) => w * math.min(scaleX, scaleY))
-                          .toList()
+                        .map((w) => w * math.min(scaleX, scaleY))
+                        .toList()
                     : [],
                 color: stroke.color,
                 strokeWidth: stroke.strokeWidth * math.min(scaleX, scaleY),
@@ -2012,13 +2001,12 @@ class ScribeCanvasState extends State<ScribeCanvas>
                             behavior: HitTestBehavior.opaque,
                             child: CustomPaint(
                               size: Size(_documentWidth, _documentHeight),
-                              painter: ScribePainter(
+                              painter: PaperPainter(
                                 cachedPicture: _cachedPicture,
                                 currentStroke: _currentStroke,
                                 highlightedStrokes: _highlightedStrokes,
-                                eraserPosition: _isErasing
-                                    ? _pointerPosition
-                                    : null,
+                                eraserPosition:
+                                    _isErasing ? _pointerPosition : null,
                                 eraserRadius: _isErasing
                                     ? (widget.eraserWidth / 2)
                                     : null,
@@ -2038,8 +2026,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
                             Positioned(
                               left: 0,
                               right: 0,
-                              top:
-                                  (i * _pageHeight) +
+                              top: (i * _pageHeight) +
                                   (_headerOffsetsY[i] ?? 0.0),
                               child: PageHeader(
                                 pageIndex: i,
@@ -2085,8 +2072,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
                                 onDragEnd: () {
                                   setState(() {
                                     final currentY = _headerOffsetsY[i] ?? 0.0;
-                                    final bottomSnap =
-                                        _pageHeight - 100.0;
+                                    final bottomSnap = _pageHeight - 100.0;
                                     if (currentY > _pageHeight / 2) {
                                       _headerOffsetsY[i] = bottomSnap;
                                     } else {
@@ -2101,7 +2087,8 @@ class ScribeCanvasState extends State<ScribeCanvas>
                     ),
                   ),
                 ),
-                if (!widget.isPanMode && widget.scrollMode == ScribeScrollMode.continuous)
+                if (!widget.isPanMode &&
+                    widget.scrollMode == ScrollMode.continuous)
                   AnimatedBuilder(
                     animation: _transformationController,
                     builder: (context, child) {
@@ -2186,7 +2173,7 @@ class ScribeCanvasState extends State<ScribeCanvas>
                       ),
                     ),
                   ),
-                if (widget.scrollMode == ScribeScrollMode.discrete)
+                if (widget.scrollMode == ScrollMode.discrete)
                   _buildVerticalNavigation(),
               ], // end Stack children
             ), // end Stack

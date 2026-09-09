@@ -103,26 +103,26 @@ class _PdfTemplateSink implements TemplateSink {
 }
 
 /// Draws the paper ruling for a single page.
-class ScribeTemplateRenderer {
-  const ScribeTemplateRenderer._();
+class PaperTemplateRenderer {
+  const PaperTemplateRenderer._();
 
   /// Paints [template] over a page of [pageSize] into [sink].
   static void paint({
     required TemplateSink sink,
-    required ScribePaperTemplate template,
+    required PaperTemplate template,
     required Size pageSize,
-    required ScribeTemplateTheme theme,
+    required PaperTemplateTheme theme,
   }) {
     switch (template) {
-      case ScribePaperTemplate.blank:
+      case PaperTemplate.blank:
         return;
-      case ScribePaperTemplate.lined:
+      case PaperTemplate.lined:
         _paintLined(sink, pageSize, theme);
-      case ScribePaperTemplate.grid:
+      case PaperTemplate.grid:
         _paintGrid(sink, pageSize, theme);
-      case ScribePaperTemplate.dots:
+      case PaperTemplate.dots:
         _paintDots(sink, pageSize, theme);
-      case ScribePaperTemplate.cornell:
+      case PaperTemplate.cornell:
         _paintCornell(sink, pageSize, theme);
     }
   }
@@ -131,9 +131,9 @@ class ScribeTemplateRenderer {
   static void paintToCanvas({
     required Canvas canvas,
     required Offset origin,
-    required ScribePaperTemplate template,
+    required PaperTemplate template,
     required Size pageSize,
-    required ScribeTemplateTheme theme,
+    required PaperTemplateTheme theme,
   }) {
     paint(
       sink: _CanvasTemplateSink(canvas, origin),
@@ -146,9 +146,9 @@ class ScribeTemplateRenderer {
   /// Convenience wrapper for PDF export.
   static void paintToPdf({
     required PdfGraphics graphics,
-    required ScribePaperTemplate template,
+    required PaperTemplate template,
     required Size pageSize,
-    required ScribeTemplateTheme theme,
+    required PaperTemplateTheme theme,
   }) {
     paint(
       sink: _PdfTemplateSink(graphics, pageSize.height),
@@ -161,9 +161,9 @@ class ScribeTemplateRenderer {
   /// A `pw.Widget` that renders the ruling as vector paths, for composing into
   /// an exported page.
   static pw.Widget pdfWidget({
-    required ScribePaperTemplate template,
+    required PaperTemplate template,
     required Size pageSize,
-    required ScribeTemplateTheme theme,
+    required PaperTemplateTheme theme,
   }) {
     return pw.CustomPaint(
       size: PdfPoint(pageSize.width, pageSize.height),
@@ -181,13 +181,14 @@ class ScribeTemplateRenderer {
   static void _paintLined(
     TemplateSink sink,
     Size page,
-    ScribeTemplateTheme theme,
+    PaperTemplateTheme theme,
   ) {
     final double marginX = page.width * 0.11;
     final double topInset = theme.lineSpacing * 2;
     final double bottomInset = theme.lineSpacing;
 
-    for (double y = topInset; y <= page.height - bottomInset;
+    for (double y = topInset;
+        y <= page.height - bottomInset;
         y += theme.lineSpacing) {
       sink.line(
         Offset(marginX, y),
@@ -210,7 +211,7 @@ class ScribeTemplateRenderer {
   static void _paintGrid(
     TemplateSink sink,
     Size page,
-    ScribeTemplateTheme theme,
+    PaperTemplateTheme theme,
   ) {
     final double step = theme.gridSpacing;
     for (double x = step; x < page.width; x += step) {
@@ -234,7 +235,7 @@ class ScribeTemplateRenderer {
   static void _paintDots(
     TemplateSink sink,
     Size page,
-    ScribeTemplateTheme theme,
+    PaperTemplateTheme theme,
   ) {
     final double step = theme.gridSpacing;
     final double radius = theme.lineWidth * 1.4;
@@ -253,7 +254,7 @@ class ScribeTemplateRenderer {
   static void _paintCornell(
     TemplateSink sink,
     Size page,
-    ScribeTemplateTheme theme,
+    PaperTemplateTheme theme,
   ) {
     final double headerY = page.height * 0.085;
     final double summaryY = page.height * 0.78;
@@ -316,9 +317,9 @@ class ScribeTemplateRenderer {
 /// for thumbnails, where composing a template behind the ink without standing
 /// up the whole canvas widget is much cheaper.
 Future<ui.Image> renderTemplateImage({
-  required ScribePaperTemplate template,
+  required PaperTemplate template,
   required Size pageSize,
-  required ScribeTemplateTheme theme,
+  required PaperTemplateTheme theme,
   double pixelRatio = 1.0,
 }) async {
   final recorder = ui.PictureRecorder();
@@ -328,7 +329,7 @@ Future<ui.Image> renderTemplateImage({
     Rect.fromLTWH(0, 0, pageSize.width, pageSize.height),
     Paint()..color = theme.pageColor,
   );
-  ScribeTemplateRenderer.paintToCanvas(
+  PaperTemplateRenderer.paintToCanvas(
     canvas: canvas,
     origin: Offset.zero,
     template: template,

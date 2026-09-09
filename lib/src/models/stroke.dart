@@ -7,7 +7,7 @@ import 'package:flutter/material.dart';
 /// -- the drag start and end -- and derive their outline on demand, so a
 /// rectangle stays a rectangle through save/load rather than degrading into a
 /// polyline that happens to look rectangular.
-enum ScribeTool {
+enum PaperTool {
   /// Constant-width freehand.
   pen,
 
@@ -20,21 +20,22 @@ enum ScribeTool {
   eraser;
 
   bool get isShape =>
-      this == ScribeTool.line ||
-      this == ScribeTool.rectangle ||
-      this == ScribeTool.circle;
+      this == PaperTool.line ||
+      this == PaperTool.rectangle ||
+      this == PaperTool.circle;
 
   /// Whether per-point widths are recorded while drawing. Only the brush
   /// varies; everything else renders at a single width.
-  bool get isVariableWidth => this == ScribeTool.brush;
+  bool get isVariableWidth => this == PaperTool.brush;
 }
 
 class Stroke {
   final List<Offset> points;
-  final List<double> widths; // Per-point width (variable-width pen). May be empty for legacy strokes.
+  final List<double>
+      widths; // Per-point width (variable-width pen). May be empty for legacy strokes.
   final Color color;
   final double strokeWidth;
-  final ScribeTool tool;
+  final PaperTool tool;
 
   Rect? _bounds;
   List<Offset>? _outline;
@@ -44,10 +45,10 @@ class Stroke {
     List<double>? widths,
     this.color = Colors.black,
     this.strokeWidth = 4.0,
-    this.tool = ScribeTool.pen,
+    this.tool = PaperTool.pen,
   }) : widths = widths ?? [];
 
-  bool get isEraser => tool == ScribeTool.eraser;
+  bool get isEraser => tool == PaperTool.eraser;
 
   /// Drops the memoised outline and bounds.
   ///
@@ -65,7 +66,7 @@ class Stroke {
 
   /// The polyline actually drawn and hit-tested.
   ///
-  /// For [ScribeTool.pen] and [ScribeTool.eraser] this is just [points]. For
+  /// For [PaperTool.pen] and [PaperTool.eraser] this is just [points]. For
   /// shapes it is generated from the two anchor points, which keeps rendering,
   /// eraser hit-testing and PDF export all working off one representation.
   List<Offset> get outlinePoints {
@@ -78,9 +79,9 @@ class Stroke {
     final Offset b = points.last;
 
     switch (tool) {
-      case ScribeTool.line:
+      case PaperTool.line:
         return _outline = <Offset>[a, b];
-      case ScribeTool.rectangle:
+      case PaperTool.rectangle:
         return _outline = <Offset>[
           a,
           Offset(b.dx, a.dy),
@@ -88,7 +89,7 @@ class Stroke {
           Offset(a.dx, b.dy),
           a,
         ];
-      case ScribeTool.circle:
+      case PaperTool.circle:
         final Rect rect = Rect.fromPoints(a, b);
         final double rx = rect.width / 2;
         final double ry = rect.height / 2;
@@ -103,9 +104,9 @@ class Stroke {
               c.dy + ry * math.sin(2 * math.pi * i / segments),
             ),
         ];
-      case ScribeTool.pen:
-      case ScribeTool.brush:
-      case ScribeTool.eraser:
+      case PaperTool.pen:
+      case PaperTool.brush:
+      case PaperTool.eraser:
         return _outline = points;
     }
   }
@@ -129,7 +130,8 @@ class Stroke {
       if (p.dy > maxY) maxY = p.dy;
     }
 
-    return _bounds = Rect.fromLTRB(minX, minY, maxX, maxY).inflate(strokeWidth / 2);
+    return _bounds =
+        Rect.fromLTRB(minX, minY, maxX, maxY).inflate(strokeWidth / 2);
   }
 
   /// Accurate hit-testing: returns true if [p] is within [threshold] of any
@@ -165,7 +167,7 @@ class Stroke {
     List<double>? widths,
     Color? color,
     double? strokeWidth,
-    ScribeTool? tool,
+    PaperTool? tool,
   }) {
     return Stroke(
       points: points ?? this.points,
@@ -206,16 +208,16 @@ class Stroke {
 
   /// `tool` is the modern discriminator; `isEraser` is what documents written
   /// before shapes existed carry, so it is honoured as a fallback.
-  static ScribeTool _toolFromJson(Map<String, dynamic> json) {
+  static PaperTool _toolFromJson(Map<String, dynamic> json) {
     final Object? raw = json['tool'];
     if (raw is String) {
-      for (final t in ScribeTool.values) {
+      for (final t in PaperTool.values) {
         if (t.name == raw) return t;
       }
     }
     return (json['isEraser'] as bool? ?? false)
-        ? ScribeTool.eraser
-        : ScribeTool.pen;
+        ? PaperTool.eraser
+        : PaperTool.pen;
   }
 
   /// Simplifies the stroke using the Ramer-Douglas-Peucker algorithm.
@@ -358,9 +360,9 @@ class Stroke {
       widths = parts[4].split(',').map((s) => int.parse(s) / 10.0).toList();
     }
 
-    ScribeTool tool = isEraser ? ScribeTool.eraser : ScribeTool.pen;
+    PaperTool tool = isEraser ? PaperTool.eraser : PaperTool.pen;
     if (parts.length >= 6 && parts[5].isNotEmpty) {
-      for (final t in ScribeTool.values) {
+      for (final t in PaperTool.values) {
         if (t.name == parts[5]) {
           tool = t;
           break;

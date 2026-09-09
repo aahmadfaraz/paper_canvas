@@ -1,20 +1,25 @@
-name: scribe_canvas
+name: paper_canvas
 description: >-
-  Vendored fork of the scribe_canvas package (MIT, upstream v0.6.3), extended
-  in-house with configurable page formats, vector paper templates, an unbounded
-  2D canvas mode and shape tools. See VENDORING.md for the fork rationale and
-  the list of local changes.
-version: 0.6.3+schoolhack.1
-publish_to: none
-repository: https://github.com/aahmadfaraz/scribe_canvas
+  A multi-page handwriting and drawing canvas with configurable paper sizes,
+  vector paper templates (lined, grid, dots, Cornell), an unbounded canvas mode,
+  shape tools, and true vector PDF export and printing.
+version: 1.0.0
+repository: https://github.com/aahmadfaraz/paper_canvas
+issue_tracker: https://github.com/aahmadfaraz/paper_canvas/issues
+
+topics:
+  - drawing
+  - handwriting
+  - canvas
+  - pdf
+  - notes
 
 environment:
-  # Upstream declares ^3.11.0, which the app's pinned toolchain (Flutter
-  # 3.38.5 / Dart 3.10.4, see .fvmrc) does not satisfy. The source does not
-  # actually use any 3.11 language feature, so the floor is lowered here to
-  # match the app.
-  sdk: ">=3.4.3 <4.0.0"
-  flutter: ">=1.17.0"
+  # Color.toARGB32() and Color.withValues() are used throughout, and both
+  # landed in Flutter 3.27 / Dart 3.6. Declaring anything lower would let the
+  # package resolve on a toolchain it cannot actually compile against.
+  sdk: ">=3.6.0 <4.0.0"
+  flutter: ">=3.27.0"
 
 dependencies:
   flutter:
@@ -24,6 +29,7 @@ dependencies:
   printing: ^5.13.0
 
 dev_dependencies:
+  flutter_lints: ^4.0.0
   flutter_test:
     sdk: flutter
 

@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scribe_canvas/scribe_canvas.dart';
+import 'package:paper_canvas/paper_canvas.dart';
 
 /// Host that drives the pen colour from outside the canvas, the way an app
 /// with its own toolbar does.
 class _Host extends StatefulWidget {
   const _Host({super.key, required this.controller});
 
-  final ScribeCanvasController controller;
+  final PaperCanvasController controller;
 
   @override
   State<_Host> createState() => _HostState();
@@ -16,11 +16,14 @@ class _Host extends StatefulWidget {
 class _HostState extends State<_Host> {
   Color color = const Color(0xFF000000);
 
+  /// The host changing its pen colour, the way a toolbar would.
+  void setColor(Color value) => setState(() => color = value);
+
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: ScribeCanvas(controller: widget.controller, color: color),
+        body: PaperCanvas(controller: widget.controller, color: color),
       ),
     );
   }
@@ -29,7 +32,7 @@ class _HostState extends State<_Host> {
 void main() {
   /// Drags across the canvas to lay down one stroke.
   Future<void> draw(WidgetTester tester) async {
-    final canvas = find.byType(ScribeCanvas);
+    final canvas = find.byType(PaperCanvas);
     final center = tester.getCenter(canvas);
     final gesture = await tester.startGesture(center);
     for (int i = 1; i <= 6; i++) {
@@ -41,7 +44,7 @@ void main() {
   }
 
   testWidgets('a stroke uses the colour the host passes in', (tester) async {
-    final controller = ScribeCanvasController();
+    final controller = PaperCanvasController();
     addTearDown(controller.dispose);
 
     final key = GlobalKey<_HostState>();
@@ -51,9 +54,7 @@ void main() {
     // Host switches colour before anything is drawn. Upstream ignored the
     // `color` property entirely -- it seeded from `initialColor` in initState
     // and never looked at `color` again -- so every stroke came out black.
-    key.currentState!.setState(() {
-      key.currentState!.color = const Color(0xFFFF0000);
-    });
+    key.currentState!.setColor(const Color(0xFFFF0000));
     await tester.pumpAndSettle();
 
     await draw(tester);
@@ -65,22 +66,18 @@ void main() {
 
   testWidgets('changing colour mid-session only affects later strokes',
       (tester) async {
-    final controller = ScribeCanvasController();
+    final controller = PaperCanvasController();
     addTearDown(controller.dispose);
 
     final key = GlobalKey<_HostState>();
     await tester.pumpWidget(_Host(key: key, controller: controller));
     await tester.pumpAndSettle();
 
-    key.currentState!.setState(() {
-      key.currentState!.color = const Color(0xFF00FF00);
-    });
+    key.currentState!.setColor(const Color(0xFF00FF00));
     await tester.pumpAndSettle();
     await draw(tester);
 
-    key.currentState!.setState(() {
-      key.currentState!.color = const Color(0xFF0000FF);
-    });
+    key.currentState!.setColor(const Color(0xFF0000FF));
     await tester.pumpAndSettle();
     await draw(tester);
 

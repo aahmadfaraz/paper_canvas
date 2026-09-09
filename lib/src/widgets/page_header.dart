@@ -147,7 +147,6 @@ class PageHeader extends StatelessWidget {
                   tooltip: 'Insert Page Above',
                 ),
               ],
-
               if (isLastPage) ...[
                 const SizedBox(width: 4),
                 Container(width: 1, height: 16, color: Colors.black12),
@@ -219,16 +218,14 @@ class PageHeader extends StatelessWidget {
     final Color toolColor = isPen
         ? (isActive ? color : Colors.black54)
         : (isActive ? eraserActiveColor : eraserInactiveColor);
-    
-    final String label = isPen
-        ? strokeWidth.toStringAsFixed(0)
-        : eraserWidth.toStringAsFixed(0);
+
+    final String label =
+        isPen ? strokeWidth.toStringAsFixed(0) : eraserWidth.toStringAsFixed(0);
     final String tooltip = isPen ? 'Pen Size: $label' : 'Eraser Size: $label';
     final List<double> sizes = isPen ? strokeSizes : eraserSizes;
     final double currentWidth = isPen ? strokeWidth : eraserWidth;
-    final ValueChanged<double> onWidthChanged = isPen
-        ? onStrokeWidthChanged
-        : onEraserWidthChanged;
+    final ValueChanged<double> onWidthChanged =
+        isPen ? onStrokeWidthChanged : onEraserWidthChanged;
 
     return Tooltip(
       message: tooltip,

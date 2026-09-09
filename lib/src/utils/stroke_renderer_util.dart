@@ -12,8 +12,7 @@ class StrokeRendererUtil {
     if (points.isEmpty) return {'points': <Offset>[], 'widths': <double>[]};
 
     final List<Offset> filteredPts = [points.first];
-    final List<double> filteredWts =
-        widths.isNotEmpty ? [widths.first] : [];
+    final List<double> filteredWts = widths.isNotEmpty ? [widths.first] : [];
 
     for (int i = 1; i < points.length; i++) {
       final distance = (points[i] - filteredPts.last).distance;
@@ -99,8 +98,7 @@ class StrokeRendererUtil {
       final double segmentIndex = t * (pts.length - 1);
       final int idx = segmentIndex.floor().clamp(0, pts.length - 2);
       final double localT = (segmentIndex - idx).clamp(0.0, 1.0);
-      double width =
-          ui.lerpDouble(wts[idx], wts[idx + 1], localT) ?? wts[idx];
+      double width = ui.lerpDouble(wts[idx], wts[idx + 1], localT) ?? wts[idx];
 
       if (i < taperSamples) {
         width *= (i / taperSamples);
@@ -133,8 +131,8 @@ class StrokeRendererUtil {
   }
 
   // ─── Drawing Methods ────────────────────────────────────────────────────────
-  // These are shared by both the cache builder (ScribeCanvasState._rebuildCache)
-  // and the painter (ScribePainter) for the live current stroke.
+  // These are shared by both the cache builder (PaperCanvasState._rebuildCache)
+  // and the painter (PaperPainter) for the live current stroke.
 
   /// Draws a single stroke onto the given canvas using the full processing pipeline.
   static void drawStroke(Canvas canvas, Stroke stroke) {

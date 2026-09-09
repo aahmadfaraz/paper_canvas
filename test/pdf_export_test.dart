@@ -2,28 +2,28 @@ import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:scribe_canvas/scribe_canvas.dart';
+import 'package:paper_canvas/paper_canvas.dart';
 
 /// Mounts a canvas, loads [strokes] into it and returns the exported bytes.
 Future<Uint8List?> exportWith(
   WidgetTester tester, {
   required List<Stroke> strokes,
-  ScribePageFormat pageFormat = ScribePageFormat.a4Portrait,
-  ScribeCanvasMode canvasMode = ScribeCanvasMode.paged,
-  ScribePaperTemplate template = ScribePaperTemplate.blank,
+  PageFormat pageFormat = PageFormat.a4Portrait,
+  CanvasMode canvasMode = CanvasMode.paged,
+  PaperTemplate template = PaperTemplate.blank,
 }) async {
-  final controller = ScribeCanvasController();
+  final controller = PaperCanvasController();
   addTearDown(controller.dispose);
 
   await tester.pumpWidget(
     MaterialApp(
       home: Scaffold(
-        body: ScribeCanvas(
+        body: PaperCanvas(
           controller: controller,
           pageFormat: pageFormat,
           canvasMode: canvasMode,
           template: template,
-          multiPage: canvasMode == ScribeCanvasMode.paged,
+          multiPage: canvasMode == CanvasMode.paged,
         ),
       ),
     ),
@@ -43,7 +43,7 @@ Stroke penStroke({double y = 100}) => Stroke(
       widths: <double>[for (int i = 0; i < 20; i++) 2.0 + (i % 3)],
       color: const Color(0xFF202020),
       strokeWidth: 4,
-      tool: ScribeTool.brush,
+      tool: PaperTool.brush,
     );
 
 void main() {
@@ -81,9 +81,9 @@ void main() {
     final a3 = await exportWith(
       tester,
       strokes: [penStroke()],
-      pageFormat: const ScribePageFormat(
-        size: ScribePaperSize.a3,
-        orientation: ScribePageOrientation.landscape,
+      pageFormat: const PageFormat(
+        size: PaperSize.a3,
+        orientation: PageOrientation.landscape,
       ),
     );
 
@@ -108,7 +108,7 @@ void main() {
   testWidgets('an infinite canvas fits onto a single page', (tester) async {
     final bytes = await exportWith(
       tester,
-      canvasMode: ScribeCanvasMode.infinite,
+      canvasMode: CanvasMode.infinite,
       strokes: [penStroke(y: 100), penStroke(y: 4000)],
     );
 
@@ -121,12 +121,12 @@ void main() {
     final blank = await exportWith(
       tester,
       strokes: [penStroke()],
-      template: ScribePaperTemplate.blank,
+      template: PaperTemplate.blank,
     );
     final cornell = await exportWith(
       tester,
       strokes: [penStroke()],
-      template: ScribePaperTemplate.cornell,
+      template: PaperTemplate.cornell,
     );
 
     // The ruling is drawn as real paths, so a templated page carries strictly
@@ -144,7 +144,7 @@ void main() {
           points: const <Offset>[Offset(80, 120), Offset(320, 400)],
           color: const Color(0xFF3355FF),
           strokeWidth: 3,
-          tool: ScribeTool.rectangle,
+          tool: PaperTool.rectangle,
         ),
       ],
     );
@@ -160,25 +160,30 @@ void main() {
 class _Reconfigurable extends StatefulWidget {
   const _Reconfigurable({super.key, required this.controller});
 
-  final ScribeCanvasController controller;
+  final PaperCanvasController controller;
 
   @override
   State<_Reconfigurable> createState() => _ReconfigurableState();
 }
 
 class _ReconfigurableState extends State<_Reconfigurable> {
-  ScribePageFormat format = ScribePageFormat.a4Portrait;
-  ScribeCanvasMode mode = ScribeCanvasMode.paged;
+  PageFormat format = PageFormat.a4Portrait;
+  CanvasMode mode = CanvasMode.paged;
+
+  /// Page setup being changed at runtime, the way a settings sheet would.
+  void setFormat(PageFormat value) => setState(() => format = value);
+
+  void setMode(CanvasMode value) => setState(() => mode = value);
 
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
       home: Scaffold(
-        body: ScribeCanvas(
+        body: PaperCanvas(
           controller: widget.controller,
           pageFormat: format,
           canvasMode: mode,
-          multiPage: mode == ScribeCanvasMode.paged,
+          multiPage: mode == CanvasMode.paged,
         ),
       ),
     );
@@ -187,7 +192,7 @@ class _ReconfigurableState extends State<_Reconfigurable> {
 
 void _reconfigurationTests() {
   testWidgets('changing page size re-derives the page count', (tester) async {
-    final controller = ScribeCanvasController();
+    final controller = PaperCanvasController();
     addTearDown(controller.dispose);
 
     final key = GlobalKey<_ReconfigurableState>();
@@ -195,35 +200,32 @@ void _reconfigurationTests() {
     await tester.pumpAndSettle();
 
     // Ink at y=2000 is on the third A4 page (842pt each).
-    controller.loadStrokesJson([penStroke(y: 100).toJson(), penStroke(y: 2000).toJson()]);
+    controller.loadStrokesJson(
+        [penStroke(y: 100).toJson(), penStroke(y: 2000).toJson()]);
     await tester.pumpAndSettle();
     expect(controller.pageCount, 3);
 
     // The same ink on A3 (1190.55pt tall) needs only two pages.
-    key.currentState!.setState(() {
-      key.currentState!.format =
-          const ScribePageFormat(size: ScribePaperSize.a3);
-    });
+    key.currentState!.setFormat(const PageFormat(size: PaperSize.a3));
     await tester.pumpAndSettle();
     expect(controller.pageCount, 2);
   });
 
   testWidgets('switching to infinite collapses to a single page',
       (tester) async {
-    final controller = ScribeCanvasController();
+    final controller = PaperCanvasController();
     addTearDown(controller.dispose);
 
     final key = GlobalKey<_ReconfigurableState>();
     await tester.pumpWidget(_Reconfigurable(key: key, controller: controller));
     await tester.pumpAndSettle();
 
-    controller.loadStrokesJson([penStroke(y: 100).toJson(), penStroke(y: 2000).toJson()]);
+    controller.loadStrokesJson(
+        [penStroke(y: 100).toJson(), penStroke(y: 2000).toJson()]);
     await tester.pumpAndSettle();
     expect(controller.pageCount, 3);
 
-    key.currentState!.setState(() {
-      key.currentState!.mode = ScribeCanvasMode.infinite;
-    });
+    key.currentState!.setMode(CanvasMode.infinite);
     await tester.pumpAndSettle();
     expect(controller.pageCount, 1);
 

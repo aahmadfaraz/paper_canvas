@@ -66,6 +66,18 @@ class PaperCanvas extends StatefulWidget {
   /// written against the pen/eraser-only API keep working.
   final PaperTool? tool;
 
+  /// Minimum size of the drawing surface in [CanvasMode.infinite].
+  ///
+  /// This is the room available before anything is drawn; the surface then
+  /// grows beyond it to keep [infiniteCanvasMargin] of slack past the content.
+  /// Deliberately far larger than a page -- a canvas that only extends a
+  /// screen or two in each direction does not feel unbounded.
+  final Size infiniteCanvasMinSize;
+
+  /// Slack kept beyond the drawn content in [CanvasMode.infinite], so there is
+  /// always somewhere left to pan into and keep drawing.
+  final double infiniteCanvasMargin;
+
   const PaperCanvas({
     super.key,
     this.controller,
@@ -75,6 +87,8 @@ class PaperCanvas extends StatefulWidget {
     this.tool,
     this.pageFormat = PageFormat.a4Portrait,
     this.canvasMode = CanvasMode.paged,
+    this.infiniteCanvasMinSize = const Size(10000, 15000),
+    this.infiniteCanvasMargin = 2000,
     this.template = PaperTemplate.blank,
     this.templateTheme = PaperTemplateTheme.light,
     this.isPanMode = false,
@@ -180,9 +194,6 @@ class PaperCanvasState extends State<PaperCanvas>
   // page count. In infinite mode it is a large surface that grows outward as
   // drawing approaches its edge, matching the behaviour of a whiteboard.
 
-  /// Slack kept beyond the drawn content so there is always somewhere to pan.
-  static const double _infiniteMargin = 2000.0;
-
   /// Recomputed on every cache rebuild rather than per frame -- it is O(number
   /// of strokes) and the extent can only change when the stroke list does.
   Size? _infiniteExtentCache;
@@ -191,17 +202,22 @@ class PaperCanvasState extends State<PaperCanvas>
     final Size? cached = _infiniteExtentCache;
     if (cached != null) return cached;
 
-    // Start with a couple of pages' worth of room so a brand-new infinite
-    // canvas still has somewhere to pan before anything is drawn.
-    double maxX = _pageWidth * 2;
-    double maxY = _pageHeight * 2;
+    // Grow past the drawn content, but never below the configured minimum.
+    // The minimum is what makes a fresh canvas feel unbounded; deriving it
+    // from the page size (as this once did) made it far too small.
+    double maxX = 0;
+    double maxY = 0;
     for (final stroke in _strokes) {
       final Rect b = stroke.bounds;
       if (b.right > maxX) maxX = b.right;
       if (b.bottom > maxY) maxY = b.bottom;
     }
-    return _infiniteExtentCache =
-        Size(maxX + _infiniteMargin, maxY + _infiniteMargin);
+    return _infiniteExtentCache = Size(
+      math.max(maxX + widget.infiniteCanvasMargin,
+          widget.infiniteCanvasMinSize.width),
+      math.max(maxY + widget.infiniteCanvasMargin,
+          widget.infiniteCanvasMinSize.height),
+    );
   }
 
   double get _documentWidth => _isInfinite ? _infiniteExtent.width : _pageWidth;
@@ -630,15 +646,23 @@ class PaperCanvasState extends State<PaperCanvas>
       Rect.fromLTWH(0, 0, _documentWidth, _documentHeight),
     );
     // saveLayer is required so that eraser strokes (BlendMode.clear) punch
-    // through the ink strokes that precede them in the list.
-    cacheCanvas.saveLayer(
-      Rect.fromLTWH(0, 0, _documentWidth, _documentHeight),
-      Paint(),
-    );
+    // through the ink strokes that precede them in the list -- but only then.
+    // Erasers remove whole strokes and are never persisted, so the only way
+    // one reaches this list is via imported legacy data. Since the layer is
+    // bounded by the whole document, skipping it when there is nothing to
+    // erase avoids an offscreen buffer the size of the canvas, which matters
+    // once that canvas is measured in tens of thousands of points.
+    final bool needsEraserLayer = _strokes.any((s) => s.isEraser);
+    if (needsEraserLayer) {
+      cacheCanvas.saveLayer(
+        Rect.fromLTWH(0, 0, _documentWidth, _documentHeight),
+        Paint(),
+      );
+    }
     for (final stroke in _strokes) {
       StrokeRendererUtil.drawStroke(cacheCanvas, stroke);
     }
-    cacheCanvas.restore();
+    if (needsEraserLayer) cacheCanvas.restore();
     _cachedPicture = recorder.endRecording();
   }
 

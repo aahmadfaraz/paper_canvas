@@ -44,7 +44,7 @@ ruling, and a PDF you can actually print.
 
 ```yaml
 dependencies:
-  paper_canvas: ^0.1.0
+  paper_canvas: ^0.2.0
 ```
 
 Requires **Flutter 3.27 / Dart 3.6** or newer. Supports Android, iOS, macOS,
@@ -183,6 +183,18 @@ CanvasMode.infinite  // one unbounded 2D surface
 
 Switching mode or paper size at runtime re-derives page count and geometry, so
 you can offer it as a live setting.
+
+The unbounded surface starts at `infiniteCanvasMinSize` (default
+`Size(10000, 15000)`) and grows to keep `infiniteCanvasMargin` (default `2000`)
+of slack beyond the drawn content:
+
+```dart
+PaperCanvas(
+  canvasMode: CanvasMode.infinite,
+  infiniteCanvasMinSize: const Size(20000, 20000),
+  infiniteCanvasMargin: 4000,
+)
+```
 
 ## Tools
 
@@ -335,6 +347,8 @@ controller.contentBounds;  // Rect? of the committed ink
 | `eraserWidth` | `double` | `30.0` | Eraser hit radius. |
 | `pageFormat` | `PageFormat` | A4 portrait | Paper size and orientation. |
 | `canvasMode` | `CanvasMode` | `paged` | Paged or unbounded. |
+| `infiniteCanvasMinSize` | `Size` | `10000x15000` | Minimum unbounded surface. |
+| `infiniteCanvasMargin` | `double` | `2000` | Slack kept beyond the content. |
 | `template` | `PaperTemplate` | `blank` | Paper ruling. |
 | `templateTheme` | `PaperTemplateTheme` | `light` | Ruling colours and metrics. |
 | `multiPage` | `bool` | `true` | Allow more than one page. |

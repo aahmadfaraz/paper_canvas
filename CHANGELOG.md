@@ -1,5 +1,28 @@
 # Changelog
 
+## 0.2.0
+
+### Fixed
+
+- The `CanvasMode.infinite` surface was far too small. Its size was derived
+  from the page format (two pages plus a margin), giving roughly 3191x3684
+  points on A4 -- only a few screens in each direction, which does not feel
+  unbounded. It now defaults to a 10000x15000 minimum and still grows beyond
+  that to keep a margin past the drawn content.
+
+### Added
+
+- `PaperCanvas.infiniteCanvasMinSize` (default `Size(10000, 15000)`) and
+  `PaperCanvas.infiniteCanvasMargin` (default `2000`) make the unbounded
+  surface configurable instead of implied by the page size.
+
+### Changed
+
+- The render cache no longer opens a document-sized `saveLayer` unless an
+  eraser stroke is actually present. Erasers remove whole strokes and are never
+  persisted, so the layer was only ever needed for imported legacy data -- and
+  its cost scales with the canvas, which now matters.
+
 ## 0.1.0
 
 First release.

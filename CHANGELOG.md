@@ -1,8 +1,11 @@
 # Changelog
 
-## 1.0.0
+## 0.1.0
 
 First release.
+
+Published as 0.x while the API settles: under semver, breaking changes
+before 1.0.0 land as a minor bump (0.2.0) rather than a major one.
 
 `paper_canvas` is a derivative work of
 [`scribe_canvas` v0.6.3](https://pub.dev/packages/scribe_canvas) by SKS-0212,

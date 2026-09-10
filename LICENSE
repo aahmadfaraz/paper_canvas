@@ -1,13 +1,7 @@
 MIT License
 
-Copyright (c) 2026 SKS-0212 (original work, published on pub.dev as
-`scribe_canvas`: https://pub.dev/packages/scribe_canvas)
-Copyright (c) 2026 Ahmad Faraz (modifications)
-
-`paper_canvas` is a derivative work of `scribe_canvas` v0.6.3 by SKS-0212. The
-original copyright notice above is retained as required by the MIT License, and
-covers the parts of this software inherited from that project. See NOTICE.md
-for a summary of what was inherited and what was added.
+Copyright (c) 2026 SKS-0212
+Copyright (c) 2026 Ahmad Faraz
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal

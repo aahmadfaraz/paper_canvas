@@ -44,7 +44,7 @@ ruling, and a PDF you can actually print.
 
 ```yaml
 dependencies:
-  paper_canvas: ^0.2.1
+  paper_canvas: ^0.2.2
 ```
 
 Requires **Flutter 3.27 / Dart 3.6** or newer. Supports Android, iOS, macOS,

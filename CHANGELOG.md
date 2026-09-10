@@ -1,5 +1,19 @@
 # Changelog
 
+## 0.2.2
+
+Packaging only -- no functional change.
+
+### Fixed
+
+- The `LICENSE` file is once again recognised as MIT. An explanatory paragraph
+  about the derivation had been inserted into the license body, which stopped
+  pub.dev's license detector matching it against the canonical MIT text. The
+  file is now verbatim MIT, retaining both copyright holders; the derivation is
+  documented in `NOTICE.md` and the README, where it belongs.
+- Shortened the pubspec description to 158 characters. It was 207, over the
+  180-character limit pub.dev checks, which meant search engines truncated it.
+
 ## 0.2.1
 
 ### Added

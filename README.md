@@ -44,7 +44,7 @@ ruling, and a PDF you can actually print.
 
 ```yaml
 dependencies:
-  paper_canvas: ^0.2.0
+  paper_canvas: ^0.2.1
 ```
 
 Requires **Flutter 3.27 / Dart 3.6** or newer. Supports Android, iOS, macOS,
@@ -140,6 +140,21 @@ const PaperTemplateTheme(
 
 `PaperTemplateTheme.light` and `PaperTemplateTheme.dark` are provided; use
 `copyWith` to adjust one value.
+
+To change just the paper colour, use `canvasColor` rather than building a whole
+theme. It composes with the template theme, so the ruling is preserved:
+
+```dart
+PaperCanvas(
+  canvasColor: const Color(0xFFFFF8E1), // cream paper, ruling unchanged
+)
+```
+
+It applies everywhere paper is drawn — the canvas, the exported PDF and
+thumbnails. Left null (the default) the theme's own `pageColor` is used, which
+is white. Note this is the *paper*, not the app background: an app that themes
+its chrome for dark mode usually still wants white paper, since the drawing is
+a document that gets printed.
 
 Templates can also be rendered directly, outside a canvas:
 
@@ -351,6 +366,7 @@ controller.contentBounds;  // Rect? of the committed ink
 | `infiniteCanvasMargin` | `double` | `2000` | Slack kept beyond the content. |
 | `template` | `PaperTemplate` | `blank` | Paper ruling. |
 | `templateTheme` | `PaperTemplateTheme` | `light` | Ruling colours and metrics. |
+| `canvasColor` | `Color?` | `null` → white | Paper colour; overrides the theme's `pageColor`. |
 | `multiPage` | `bool` | `true` | Allow more than one page. |
 | `isPanMode` | `bool` | `false` | Disable drawing, pan only. |
 | `isEraser` | `bool` | `false` | Legacy eraser toggle; prefer `tool`. |

@@ -62,6 +62,18 @@ class PaperCanvas extends StatefulWidget {
   /// Colours and metrics for that ruling.
   final PaperTemplateTheme templateTheme;
 
+  /// The paper colour.
+  ///
+  /// A convenience override for [PaperTemplateTheme.pageColor], so the sheet
+  /// can be recoloured without constructing a whole theme. When null the
+  /// theme's own `pageColor` is used, which is white for the default
+  /// [PaperTemplateTheme.light].
+  ///
+  /// This is the paper, not the app background: it is what the canvas paints
+  /// under the ink and what the exported PDF and thumbnails use, so a host
+  /// that themes its chrome for dark mode usually still wants white paper.
+  final Color? canvasColor;
+
   /// The active tool. When null, falls back to [isEraser] so that callers
   /// written against the pen/eraser-only API keep working.
   final PaperTool? tool;
@@ -91,6 +103,7 @@ class PaperCanvas extends StatefulWidget {
     this.infiniteCanvasMargin = 2000,
     this.template = PaperTemplate.blank,
     this.templateTheme = PaperTemplateTheme.light,
+    this.canvasColor,
     this.isPanMode = false,
     this.onStrokeStart,
     this.onStrokeEnd,
@@ -127,6 +140,9 @@ class PaperCanvas extends StatefulWidget {
 
 class PaperCanvasState extends State<PaperCanvas>
     with SingleTickerProviderStateMixin {
+  /// Must match the default of [PaperCanvas.color].
+  static const Color _defaultPenColor = Colors.black;
+
   final List<Stroke> _strokes = [];
   final List<Stroke> _redoStack = [];
   final Map<int, ui.Image> _backgroundImages = {};
@@ -146,6 +162,15 @@ class PaperCanvasState extends State<PaperCanvas>
   // ── Page geometry ──────────────────────────────────────────────────────────
   // Upstream hard-coded A4 as a pair of static constants. Both now come from
   // the widget's page format so a document can be A3, Letter or landscape.
+
+  /// The ruling theme with [PaperCanvas.canvasColor] applied.
+  ///
+  /// Everything that paints paper -- the canvas, the PDF export and the
+  /// thumbnail -- goes through this, so the override cannot be honoured in one
+  /// place and missed in another.
+  PaperTemplateTheme get _templateTheme => widget.canvasColor == null
+      ? widget.templateTheme
+      : widget.templateTheme.copyWith(pageColor: widget.canvasColor);
 
   double get _pageWidth => widget.pageFormat.width;
 
@@ -497,9 +522,11 @@ class PaperCanvasState extends State<PaperCanvas>
     // `color` is the host-driven pen colour; `initialColor` only seeds the
     // built-in palette. Upstream seeded from `initialColor` and then never
     // read `color` again, which left the documented `color` property inert.
-    _currentColor = widget.color != const Color(0xFF000000)
-        ? widget.color
-        : widget.initialColor;
+    // `color` is the authoritative pen colour; `initialColor` only seeds the
+    // built-in palette, so it applies here just when `color` was left at its
+    // default and the host is clearly not driving it.
+    _currentColor =
+        widget.color == _defaultPenColor ? widget.initialColor : widget.color;
     _currentPageIndex = widget.initialPageIndex;
     _transformationController = TransformationController();
 
@@ -999,7 +1026,7 @@ class PaperCanvasState extends State<PaperCanvas>
       // so it is painted in the page colour instead -- visually identical on
       // the blank paper such documents were drawn on.
       final PdfColor pdfColor = stroke.isEraser
-          ? PdfColor.fromInt(widget.templateTheme.pageColor.toARGB32())
+          ? PdfColor.fromInt(_templateTheme.pageColor.toARGB32())
           : PdfColor.fromInt(stroke.color.toARGB32());
       graphics
         ..setStrokeColor(pdfColor)
@@ -1120,7 +1147,7 @@ class PaperCanvasState extends State<PaperCanvas>
           PaperTemplateRenderer.pdfWidget(
             template: widget.template,
             pageSize: pageSize,
-            theme: widget.templateTheme,
+            theme: _templateTheme,
           ),
         if (headerBytes != null)
           pw.Positioned(
@@ -1724,7 +1751,7 @@ class PaperCanvasState extends State<PaperCanvas>
         Canvas(recorder, Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble()));
     canvas.drawRect(
       Rect.fromLTWH(0, 0, outW.toDouble(), outH.toDouble()),
-      Paint()..color = widget.templateTheme.pageColor,
+      Paint()..color = _templateTheme.pageColor,
     );
     canvas.scale(scale);
     canvas.translate(-area.left, -area.top);
@@ -1735,7 +1762,7 @@ class PaperCanvasState extends State<PaperCanvas>
         origin: Offset.zero,
         template: widget.template,
         pageSize: Size(_pageWidth, _pageHeight),
-        theme: widget.templateTheme,
+        theme: _templateTheme,
       );
     }
     for (final stroke in _strokes) {
@@ -2040,7 +2067,7 @@ class PaperCanvasState extends State<PaperCanvas>
                                 headerImage: _headerImage,
                                 footerImage: _footerImage,
                                 template: widget.template,
-                                templateTheme: widget.templateTheme,
+                                templateTheme: _templateTheme,
                                 isInfinite: _isInfinite,
                               ),
                             ),

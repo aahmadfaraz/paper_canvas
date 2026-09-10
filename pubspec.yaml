@@ -3,7 +3,7 @@ description: >-
   A multi-page handwriting and drawing canvas with configurable paper sizes,
   vector paper templates (lined, grid, dots, Cornell), an unbounded canvas mode,
   shape tools, and true vector PDF export and printing.
-version: 0.2.0
+version: 0.2.1
 repository: https://github.com/aahmadfaraz/paper_canvas
 issue_tracker: https://github.com/aahmadfaraz/paper_canvas/issues
 

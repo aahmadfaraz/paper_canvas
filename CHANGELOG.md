@@ -1,5 +1,21 @@
 # Changelog
 
+## 0.2.1
+
+### Added
+
+- `PaperCanvas.canvasColor` sets the paper colour directly, without having to
+  construct a whole `PaperTemplateTheme` just to change the sheet. It composes
+  with the theme rather than replacing it, so the ruling colours and metrics
+  are preserved, and it applies everywhere paper is drawn -- the canvas, the
+  exported PDF and thumbnails. Defaults to null, meaning the theme's own
+  `pageColor` (white for `PaperTemplateTheme.light`), so existing behaviour and
+  the `PaperTemplateTheme.dark` preset are unchanged.
+
+The default pen colour was already a parameter: `PaperCanvas.color`, which
+defaults to black. Its seeding from `initialColor` no longer compares against
+an inline colour literal.
+
 ## 0.2.0
 
 ### Fixed
